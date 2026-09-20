@@ -133,6 +133,19 @@ textarea:focus,button:focus-visible,.tab:focus-visible,.wk:focus-visible{outline
 .clock{font-variant-numeric:tabular-nums; font-size:23px; font-weight:700; letter-spacing:.02em}
 .bar{height:5px; background:var(--line); border-radius:99px; overflow:hidden; margin-top:9px}
 .bar i{display:block; height:100%; background:var(--accent); width:0}
+/* ---------- 로그인 페이지 ---------- */
+#loginPage{position:fixed; inset:0; z-index:80; background:var(--paper); overflow-y:auto;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:28px 16px calc(28px + env(safe-area-inset-bottom,0px));}
+#loginPage .lmark{width:62px;height:62px;border-radius:17px;background:var(--accent);color:#fff;
+  display:grid;place-items:center;font-family:"Gowun Batang",serif;font-size:33px;margin-bottom:14px}
+#loginPage h1{margin:0; font-size:30px; letter-spacing:-.02em}
+#loginPage .lsub{margin:4px 0 26px; color:var(--muted); font-size:13.5px; text-align:center}
+#loginPage .panel{width:100%; max-width:390px; background:var(--surface); border:1px solid var(--line);
+  border-radius:14px; box-shadow:var(--shadow); padding:20px}
+#loginPage .step{font-size:11px; letter-spacing:.14em; color:var(--faint); font-weight:700; margin:0 0 3px}
+#loginPage h2{margin:0 0 3px; font-size:19px}
+#loginPage .lfoot{margin-top:22px; font-size:12px; color:var(--faint); text-align:center}
 .resume{margin-top:14px; padding:13px; background:var(--gold-soft); border:1px solid var(--gold); border-radius:var(--r)}
 .resume b{display:block; font-size:13.5px; color:var(--ink)}
 .resume span{font-size:12.5px; color:var(--muted)}
@@ -145,6 +158,17 @@ textarea:focus,button:focus-visible,.tab:focus-visible,.wk:focus-visible{outline
 .pinrow input:focus{outline:2px solid var(--accent); outline-offset:1px}
 .linkch{color:var(--accent); text-decoration:none; border-bottom:1px solid transparent}
 .linkch:hover,.linkch:focus{border-bottom-color:var(--accent)}
+/* ---------- 올라온 과제 글 ---------- */
+.reclist li.post{display:block; padding:14px 0}
+.phead{display:flex; align-items:baseline; gap:8px; margin-bottom:6px}
+.phead b{font-size:14.5px; font-weight:700}
+.phead span{font-size:11.5px; color:var(--faint); font-variant-numeric:tabular-nums}
+.ptext{margin:0 0 8px; white-space:pre-wrap; line-height:1.75; font-size:14.5px}
+.ptext:last-child{margin-bottom:0}
+.ptext.apply{padding-left:11px; border-left:2px solid var(--gold); color:var(--muted)}
+.chtag{display:inline-block; padding:1px 8px; margin-right:6px; border-radius:6px;
+  background:var(--accent-soft); color:var(--accent-ink); border:1px solid var(--accent);
+  font-family:"Gowun Batang",serif; font-size:13px; font-weight:700}
 .reclist{list-style:none; margin:0; padding:0}
 .reclist li{display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--line); flex-wrap:wrap}
 .reclist li:last-child{border-bottom:0}
@@ -167,6 +191,14 @@ audio{width:100%; margin-top:7px; height:34px}
 </style>
 </head>
 <body>
+
+<section id="loginPage">
+  <div class="lmark">馬</div>
+  <h1>마가</h1>
+  <p class="lsub">마가복음 공부반 · 2026년 가을<br>주일부터 토요일까지, 매주 16장을 함께 읽습니다.</p>
+  <div class="panel" id="loginPanel"></div>
+  <p class="lfoot">이하은 · 김하윤 · 김수현 · 구예림 · 배은채 · 정재현 · 김재원 · 황영환</p>
+</section>
 
 <header class="top">
   <div class="wrap">
@@ -341,6 +373,7 @@ const key = s=>s.replace(/\s/g,"_");
 function toast(m){ const t=document.createElement("div"); t.className="toast"; t.textContent=m;
   document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
 function chapLabel(i){ const [a,b]=CHAPS[i]; return "마가복음 "+a+"-"+b+"장"; }
+function chapShort(s){ const m=String(s||"").match(/(\d+-\d+장)/); return m?m[1]:(s||""); }
 
 function weekOf(dateStr){
   for(const w of WEEKS){ if(dateStr>=w.start && dateStr<=w.end) return w.n; }
@@ -381,23 +414,38 @@ function pinInputs(box, onDone){
 }
 function clearPins(ins){ ins.forEach(x=>x.value=""); ins[0].focus(); }
 
+function showLogin(on){
+  const lp=$("#loginPage");
+  lp.hidden = !on;
+  lp.style.display = on ? "flex" : "none";
+  document.querySelector("header.top").style.display = on ? "none" : "";
+  document.querySelector("main").style.display = on ? "none" : "";
+}
+
 function askWho(){
-  const m = modal('<p class="eyebrow">마가</p>'+
-    '<h2 style="margin:0 0 4px;font-size:20px">누구신가요?</h2>'+
-    '<p class="sub">이름을 누르고 비밀번호 네 자리를 넣습니다.</p><div class="who-grid"></div>');
-  const g=m.querySelector(".who-grid");
-  MEMBERS.forEach(n=>{ const b=document.createElement("button"); b.type="button"; b.textContent=n;
-    b.onclick=()=>{ m.remove(); askPin(n); }; g.appendChild(b); });
+  showLogin(true);
+  const P=$("#loginPanel");
+  P.innerHTML='<p class="step">1 / 2</p><h2>누구신가요?</h2>'+
+    '<p class="sub">이름을 눌러주세요.</p><div class="who-grid"></div>';
+  const g=P.querySelector(".who-grid");
+  MEMBERS.forEach(n=>{
+    const b=document.createElement("button"); b.type="button"; b.textContent=n;
+    b.onclick=()=>askPin(n);
+    g.appendChild(b);
+  });
 }
 
 function askPin(name){
+  showLogin(true);
   const first = !PINS[name];
-  const m = modal('<p class="eyebrow">'+name+'</p>'+
-    '<h2 style="margin:0 0 4px;font-size:20px">'+(first?"비밀번호를 정해주세요":"비밀번호")+'</h2>'+
-    '<p class="sub">'+(first?"네 자리 숫자입니다. 다음부터 이 번호로 들어옵니다.":"네 자리 숫자를 넣어주세요.")+'</p>'+
+  const P=$("#loginPanel");
+  P.innerHTML='<p class="step">2 / 2 · '+name+'</p>'+
+    '<h2>'+(first?"비밀번호를 정해주세요":"비밀번호")+'</h2>'+
+    '<p class="sub">'+(first?"네 자리 숫자입니다. 다음부터 이 번호로 들어옵니다."
+                            :"네 자리 숫자를 넣어주세요.")+'</p>'+
     '<div id="pinbox"></div><p class="note" id="pinMsg"></p>'+
-    '<div class="row"><button class="btn ghost" id="pinBack" type="button">다른 사람</button></div>');
-  const box=m.querySelector("#pinbox"), msg=m.querySelector("#pinMsg");
+    '<div class="row"><button class="btn ghost" id="pinBack" type="button">다른 사람</button></div>';
+  const box=P.querySelector("#pinbox"), msg=P.querySelector("#pinMsg");
   let stage1=null;
 
   const ins = pinInputs(box, async (v)=>{
@@ -409,18 +457,18 @@ function askPin(name){
       const h=await sha(v); PINS[name]=h;
       if(online){ try{ await db.collection("markStudy").doc("auth").set({pins:PINS},{merge:true}); }
                   catch(e){ console.error(e); } }
-      signIn(name, m); return;
+      signIn(name); return;
     }
     const h=await sha(v);
-    if(h===PINS[name]) signIn(name, m);
+    if(h===PINS[name]) signIn(name);
     else { msg.textContent="비밀번호가 다릅니다."; clearPins(ins); }
   });
-  m.querySelector("#pinBack").onclick=()=>{ m.remove(); askWho(); };
+  P.querySelector("#pinBack").onclick=()=>askWho();
 }
 
-function signIn(name, m){
+function signIn(name){
   me=name; try{ localStorage.setItem(LS,name); }catch(e){}
-  if(m) m.remove();
+  showLogin(false);
   paint(); checkDraft();
   toast(name+"님, 환영합니다");
 }
@@ -515,30 +563,24 @@ function paintHw(){
 }
 function paintClass(){
   const ul=$("#classList"); ul.innerHTML="";
-  MEMBERS.forEach(n=>{
-    const s = subs[key(n)+"_"+curWeek];
+  const esc=t=>(t||"").replace(/[<>&]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
+  const done = MEMBERS.filter(n=>subs[key(n)+"_"+curWeek]);
+  if(!done.length){ ul.innerHTML='<li><div class="empty">아직 올라온 과제가 없습니다.</div></li>'; return; }
+  done.forEach(n=>{
+    const s2 = subs[key(n)+"_"+curWeek];
     const li=document.createElement("li");
-    li.innerHTML='<div class="rmeta"><b>'+n+'</b><span>'+
-      (s ? (s.summary||"").slice(0,42)+((s.summary||"").length>42?"…":"") : "아직 제출 전")+'</span></div>'+
-      '<span class="pill '+(s?"yes":"no")+'">'+(s?"제출":"대기")+'</span>';
-    if(s && (n===me || TEACHERS.includes(me))){
-      li.style.cursor="pointer";
-      li.onclick=()=>openSub(n,s);
-    }
+    li.className="post";
+    li.innerHTML='<div class="phead"><b>'+esc(n)+'</b><span>'+(s2.updatedAt||"").slice(5,10)+'</span></div>'+
+      (s2.summary?'<p class="ptext">'+esc(s2.summary)+'</p>':'')+
+      (s2.apply?'<p class="ptext apply">'+esc(s2.apply)+'</p>':'');
     ul.appendChild(li);
   });
-}
-function openSub(n,s){
-  const m=document.createElement("div"); m.className="mask";
-  const esc=t=>(t||"").replace(/[<>&]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
-  m.innerHTML='<div class="modal"><p class="eyebrow">'+curWeek+'주차 · '+esc(n)+'</p>'+
-    '<h2 style="margin:0 0 10px;font-size:19px">'+esc(WEEKS.find(w=>w.n===curWeek).title)+'</h2>'+
-    '<p class="eyebrow">요약</p><p style="margin:0 0 12px;white-space:pre-wrap">'+esc(s.summary)+'</p>'+
-    '<p class="eyebrow">적용</p><p style="margin:0 0 16px;white-space:pre-wrap">'+esc(s.apply)+'</p>'+
-    '<button class="btn ghost" type="button" style="width:100%">닫기</button></div>';
-  m.querySelector("button").onclick=()=>m.remove();
-  m.onclick=e=>{ if(e.target===m) m.remove(); };
-  document.body.appendChild(m);
+  const late = MEMBERS.filter(n=>!subs[key(n)+"_"+curWeek]);
+  if(late.length){
+    const li=document.createElement("li");
+    li.innerHTML='<div class="empty" style="padding:14px 0 2px">아직 안 낸 사람 · '+late.join(" · ")+'</div>';
+    ul.appendChild(li);
+  }
 }
 function paintRecPane(){
   const w=WEEKS.find(x=>x.n===curWeek);
@@ -565,8 +607,10 @@ function drawRecs(ul, list, mineOnly){
     const ds=dd.slice(0,4)+"-"+dd.slice(4,6)+"-"+dd.slice(6);
     const li=document.createElement("li");
     const mm=Math.floor((v.sec||0)/60), ss=(v.sec||0)%60;
-    li.innerHTML='<div class="rmeta"><b>'+(mineOnly?ds.slice(5):v.name+" · "+ds.slice(5))+'</b>'+
-      '<span>'+(v.chap||"")+' · '+mm+'분 '+pad(ss)+'초 · '+Math.round((v.bytes||0)/1024)+'KB</span>'+
+    const parts=(v.parts||1)>1 ? " · "+v.parts+"부" : "";
+    li.innerHTML='<div class="rmeta">'+
+      '<b><span class="chtag">'+chapShort(v.chap)+'</span>'+(mineOnly?"":" "+v.name)+'</b>'+
+      '<span>'+ds.slice(5)+" · "+mm+'분 '+pad(ss)+'초'+parts+' · '+Math.round((v.bytes||0)/1024)+'KB</span>'+
       '<audio controls preload="none" data-k="'+k+'"></audio></div>';
     const au=li.querySelector("audio");
     au.addEventListener("play",()=>loadAudio(au,k,v),{once:true});
