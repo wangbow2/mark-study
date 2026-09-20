@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>마가복음 공부반</title>
+<meta name="theme-color" content="#2F6F62">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+:root{
+  --ink:#1B2430; --muted:#5B6672; --faint:#8C96A1;
+  --paper:#F4F6F7; --surface:#FFFFFF; --sunken:#EDF1F2;
+  --line:#DDE3E6; --line-2:#C9D2D6;
+  --accent:#2F6F62; --accent-soft:#E4EFEC; --accent-ink:#1F4F45;
+  --gold:#B8893B; --gold-soft:#F6EEDF;
+  --ok:#2F6F62; --warn:#B8893B; --bad:#A6402F;
+  --r:10px; --shadow:0 1px 2px rgba(27,36,48,.06), 0 6px 18px rgba(27,36,48,.05);
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --ink:#E7ECEF; --muted:#9BA7B0; --faint:#77838C;
+  --paper:#121A20; --surface:#1A242C; --sunken:#212D36;
+  --line:#2C3942; --line-2:#3A4954;
+  --accent:#6FB9A8; --accent-soft:#1E3B35; --accent-ink:#9FD6C8;
+  --gold:#D3A85C; --gold-soft:#332A19;
+  --ok:#6FB9A8; --warn:#D3A85C; --bad:#E08C7A;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25);
+}}
+:root[data-theme="dark"]{
+  --ink:#E7ECEF; --muted:#9BA7B0; --faint:#77838C;
+  --paper:#121A20; --surface:#1A242C; --sunken:#212D36;
+  --line:#2C3942; --line-2:#3A4954;
+  --accent:#6FB9A8; --accent-soft:#1E3B35; --accent-ink:#9FD6C8;
+  --gold:#D3A85C; --gold-soft:#332A19;
+  --ok:#6FB9A8; --warn:#D3A85C; --bad:#E08C7A;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;width:100%;overflow-x:hidden}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;
+  font-size:15px; line-height:1.65; -webkit-text-size-adjust:100%;
+}
+h1,h2,h3,.disp{font-family:"Gowun Batang","Apple SD Gothic Neo",serif; text-wrap:balance}
+button,input,textarea,select{font:inherit; color:inherit}
+.wrap{max-width:720px; margin:0 auto; padding-inline:16px}
+
+/* ---------- 머리 ---------- */
+header.top{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:20;
+  background:var(--surface); border-bottom:1px solid var(--line);
+}
+.brandrow{display:flex; align-items:center; gap:10px; padding-block:12px 10px}
+.mark{
+  width:34px;height:34px;flex:0 0 34px;border-radius:9px;
+  background:var(--accent); color:#fff; display:grid; place-items:center;
+  font-family:"Gowun Batang",serif; font-size:19px; line-height:1;
+}
+.brand{flex:1; min-width:0}
+.brand b{display:block; font-family:"Gowun Batang",serif; font-size:17px; font-weight:700; letter-spacing:-.01em}
+.brand span{display:block; font-size:11.5px; color:var(--faint); letter-spacing:.06em}
+.who{
+  display:flex; align-items:center; gap:6px; padding:5px 10px; cursor:pointer;
+  background:var(--sunken); border:1px solid var(--line); border-radius:999px;
+  font-size:12.5px; font-weight:500; white-space:nowrap;
+}
+.tabs{display:flex; gap:4px; padding-bottom:9px}
+.tab{
+  flex:1; padding:9px 8px; text-align:center; cursor:pointer; font-size:14px; font-weight:500;
+  background:transparent; border:1px solid transparent; border-radius:var(--r); color:var(--muted);
+}
+.tab[aria-selected="true"]{background:var(--accent-soft); color:var(--accent-ink); border-color:var(--accent); font-weight:700}
+
+main{padding-block:18px 64px}
+section[hidden]{display:none!important}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); padding:16px; margin-bottom:14px}
+.eyebrow{font-size:11px; letter-spacing:.14em; color:var(--faint); font-weight:700; margin:0 0 4px}
+.card h2{margin:0 0 3px; font-size:19px}
+.sub{margin:0; color:var(--muted); font-size:13px}
+
+/* ---------- 주차 고르기 ---------- */
+.weekbar{display:flex; gap:6px; overflow-x:auto; padding:2px 0 8px; scrollbar-width:thin}
+.wk{
+  flex:0 0 auto; min-width:52px; padding:7px 10px; cursor:pointer; text-align:center;
+  background:var(--surface); border:1px solid var(--line); border-radius:8px;
+  font-size:12.5px; font-variant-numeric:tabular-nums; color:var(--muted);
+}
+.wk[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700}
+.wk.done::after{content:"·"; color:var(--gold); font-weight:700; margin-left:3px}
+
+/* ---------- 읽기표 ---------- */
+table.plan{width:100%; border-collapse:collapse; font-size:14px}
+.plan th,.plan td{padding:9px 6px; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle}
+.plan th{font-size:11px; letter-spacing:.1em; color:var(--faint); font-weight:700; text-transform:uppercase}
+.plan td.day{width:64px; color:var(--muted); font-size:13px; white-space:nowrap}
+.plan tr.today td{background:var(--gold-soft)}
+.plan tr.today td.day{font-weight:700; color:var(--ink)}
+.ch{font-family:"Gowun Batang",serif; font-size:15.5px}
+.plan td.st,.plan th.st{width:1%; white-space:nowrap; text-align:right}
+.pill{display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:700; border:1px solid}
+.pill.yes{background:var(--accent-soft); color:var(--accent-ink); border-color:var(--accent)}
+.pill.no{background:transparent; color:var(--faint); border-color:var(--line-2)}
+
+/* ---------- 입력 ---------- */
+label.fld{display:block; margin:14px 0 5px; font-size:12.5px; font-weight:700; color:var(--muted)}
+label.fld em{font-style:normal; color:var(--gold); font-weight:700}
+textarea{
+  width:100%; min-height:110px; padding:11px 12px; resize:vertical;
+  background:var(--sunken); border:1px solid var(--line); border-radius:8px; line-height:1.7;
+}
+textarea:focus,button:focus-visible,.tab:focus-visible,.wk:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+.qbox{background:var(--gold-soft); border-left:3px solid var(--gold); border-radius:0 8px 8px 0; padding:10px 13px; margin:14px 0 0; font-size:14px}
+.qbox b{display:block; font-size:11px; letter-spacing:.12em; color:var(--gold); margin-bottom:3px}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  padding:11px 18px; cursor:pointer; font-size:14.5px; font-weight:700;
+  background:var(--accent); color:#fff; border:1px solid var(--accent); border-radius:9px;
+}
+.btn.ghost{background:transparent; color:var(--accent); }
+.btn.rec{background:var(--bad); border-color:var(--bad); color:#fff}
+.btn[disabled]{opacity:.45; cursor:not-allowed}
+.row{display:flex; gap:9px; flex-wrap:wrap; align-items:center; margin-top:14px}
+.note{font-size:12.5px; color:var(--faint); margin-top:9px}
+
+/* ---------- 녹음 ---------- */
+.reclive{display:flex; align-items:center; gap:12px; padding:14px; background:var(--sunken); border:1px solid var(--line); border-radius:var(--r)}
+.dot{width:11px;height:11px;border-radius:50%;background:var(--bad);flex:0 0 11px}
+.rec-on .dot{animation:blink 1.1s steps(2,end) infinite}
+@keyframes blink{50%{opacity:.15}}
+@media (prefers-reduced-motion:reduce){.rec-on .dot{animation:none}}
+.clock{font-variant-numeric:tabular-nums; font-size:23px; font-weight:700; letter-spacing:.02em}
+.bar{height:5px; background:var(--line); border-radius:99px; overflow:hidden; margin-top:9px}
+.bar i{display:block; height:100%; background:var(--accent); width:0}
+.reclist{list-style:none; margin:0; padding:0}
+.reclist li{display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--line); flex-wrap:wrap}
+.reclist li:last-child{border-bottom:0}
+.rmeta{flex:1; min-width:150px}
+.rmeta b{display:block; font-size:14px; font-weight:700}
+.rmeta span{font-size:12px; color:var(--faint)}
+audio{width:100%; margin-top:7px; height:34px}
+.who-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:8px; margin-top:12px}
+.who-grid button{padding:12px 6px; cursor:pointer; background:var(--surface); border:1px solid var(--line-2); border-radius:9px; font-size:14px; font-weight:500}
+.who-grid button:hover{border-color:var(--accent); color:var(--accent)}
+.mask{position:fixed; inset:0; background:rgba(27,36,48,.55); display:grid; place-items:center; padding:18px; z-index:50}
+.modal{background:var(--surface); border-radius:14px; padding:20px; width:100%; max-width:420px; box-shadow:var(--shadow)}
+.toast{
+  position:fixed; left:50%; transform:translateX(-50%); bottom:calc(22px + env(safe-area-inset-bottom,0px));
+  background:var(--ink); color:var(--paper); padding:10px 18px; border-radius:999px; font-size:13.5px; z-index:60;
+}
+.empty{text-align:center; color:var(--faint); padding:26px 10px; font-size:13.5px}
+.stat{display:flex; gap:14px; flex-wrap:wrap; margin-top:12px; font-size:12.5px; color:var(--muted)}
+.stat b{color:var(--ink); font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brandrow">
+      <div class="mark">馬</div>
+      <div class="brand">
+        <b>마가복음 공부반</b>
+        <span id="wkline">매주 마가복음 16장 통독</span>
+      </div>
+      <button class="who" id="whoBtn" type="button">…</button>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab" id="tabHw" role="tab" aria-selected="true" type="button">이번주 과제</button>
+      <button class="tab" id="tabRec" role="tab" aria-selected="false" type="button">녹음</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ===== 이번주 과제 ===== -->
+  <section id="paneHw">
+    <div class="weekbar" id="weekbar"></div>
+
+    <div class="card">
+      <p class="eyebrow" id="wkEyebrow">1주차</p>
+      <h2 id="wkTitle">예수는 누구신가</h2>
+      <p class="sub" id="wkRange">2026-09-20 주일 — 2026-09-26 토</p>
+
+      <table class="plan">
+        <thead><tr><th>요일</th><th>읽을 말씀</th><th class="st">녹음</th></tr></thead>
+        <tbody id="planBody"></tbody>
+      </table>
+      <div class="stat" id="planStat"></div>
+    </div>
+
+    <div class="card">
+      <p class="eyebrow">주간 과제</p>
+      <h2>요약과 적용</h2>
+      <p class="sub">한 주 동안 읽은 마가복음을 돌아보며 적습니다.</p>
+
+      <label class="fld" for="sumIn">이번 주 읽은 말씀 요약</label>
+      <textarea id="sumIn" placeholder="한 주 동안 읽으며 마음에 남은 흐름을 적어보세요."></textarea>
+
+      <div class="qbox"><b>적용 질문</b><span id="qText"></span></div>
+      <label class="fld" for="appIn">적용 과제 <em>*</em></label>
+      <textarea id="appIn" placeholder="질문에 대한 내 대답과, 이번 주에 실제로 해볼 한 가지를 적어보세요."></textarea>
+
+      <div class="row">
+        <button class="btn" id="saveHw" type="button">과제 제출</button>
+        <span class="note" id="hwState"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="eyebrow">함께 보기</p>
+      <h2>우리 반 제출 현황</h2>
+      <ul class="reclist" id="classList"></ul>
+    </div>
+  </section>
+
+  <!-- ===== 녹음 ===== -->
+  <section id="paneRec" hidden>
+    <div class="card">
+      <p class="eyebrow" id="recEyebrow">오늘</p>
+      <h2 id="recTitle">마가복음 1-2장</h2>
+      <p class="sub">읽은 말씀을 소리 내어 녹음합니다. 하루 한 개면 됩니다.</p>
+
+      <div class="reclive" id="recLive">
+        <span class="dot" id="recDot" hidden></span>
+        <div style="flex:1">
+          <div class="clock" id="clock">00:00</div>
+          <div class="bar"><i id="bar"></i></div>
+        </div>
+      </div>
+
+      <div class="row">
+        <button class="btn rec" id="recBtn" type="button">● 녹음 시작</button>
+        <button class="btn ghost" id="pickBtn" type="button">파일 올리기</button>
+        <input type="file" id="fileIn" accept="audio/*,video/webm,.m4a,.mp3,.wav,.aac,.ogg" hidden>
+      </div>
+      <p class="note" id="recNote">최대 20분까지 녹음됩니다. 올리는 파일은 8MB 이하를 권합니다.</p>
+    </div>
+
+    <div class="card">
+      <p class="eyebrow">내 녹음</p>
+      <h2 id="myRecTitle">지금까지 올린 것</h2>
+      <ul class="reclist" id="myRecs"></ul>
+    </div>
+
+    <div class="card">
+      <p class="eyebrow">함께 듣기</p>
+      <h2>우리 반 녹음</h2>
+      <p class="sub">이번 주에 올라온 녹음입니다.</p>
+      <ul class="reclist" id="allRecs"></ul>
+    </div>
+  </section>
+
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+/* ===================== 기본 데이터 ===================== */
+const MEMBERS = ["이하은","김하윤","김수현","구예림","배은채","정재현 선생님","김재원","황영환 목사"];
+const TEACHERS = ["정재현 선생님","황영환 목사"];
+
+// 주일~토, 2·2·2·2·2·3·3장 = 마가복음 16장 한 주 통독
+const DAYS  = ["주일","월","화","수","목","금","토"];
+const CHAPS = [[1,2],[3,4],[5,6],[7,8],[9,10],[11,13],[14,16]];
+
+const WEEKS = [
+  {n:1,  start:"2026-09-20", title:"예수는 누구신가",
+   q:"마가는 첫 문장부터 예수를 '하나님의 아들'이라 못 박습니다. 나는 이번 주, 예수를 누구라고 부르며 살았습니까?"},
+  {n:2,  start:"2026-09-27", title:"곧, 즉시",
+   q:"마가는 '곧'이라는 말을 쉼 없이 씁니다. 내가 미루고 있는 순종 한 가지는 무엇이며, 이번 주에 어떻게 '곧' 하겠습니까?"},
+  {n:3,  start:"2026-10-04", title:"부르심과 따름",
+   q:"제자들은 그물을 버려두고 따랐습니다. 예수를 따르기 위해 내가 내려놓아야 할 '그물'은 무엇입니까?"},
+  {n:4,  start:"2026-10-11", title:"씨 뿌리는 자",
+   q:"내 마음은 지금 길가·돌밭·가시떨기·좋은 땅 중 어디에 가깝습니까? 그렇게 생각한 이유를 적어보세요."},
+  {n:5,  start:"2026-10-18", title:"경계를 넘는 손길",
+   q:"예수는 사람들이 피하던 이들에게 먼저 손을 대셨습니다. 내 주변에서 내가 피하고 있던 한 사람은 누구입니까?"},
+  {n:6,  start:"2026-10-25", title:"주는 그리스도시니이다",
+   q:"베드로는 바르게 고백하고도 곧 책망을 들었습니다. 내 입의 고백과 실제 삶이 어긋난 자리는 어디입니까?"},
+  {n:7,  start:"2026-11-01", title:"크고자 하는 자는",
+   q:"예수는 섬기는 자가 큰 자라 하셨습니다. 이번 주에 내가 조용히 섬길 수 있는 한 가지는 무엇입니까?"},
+  {n:8,  start:"2026-11-08", title:"성전에서 가르치시다",
+   q:"예수는 성전을 정결하게 하셨습니다. 내 삶에서 정리되어야 할 '장사하는 자리'는 무엇입니까?"},
+  {n:9,  start:"2026-11-15", title:"겟세마네에서 십자가까지",
+   q:"'내 뜻대로 마시옵고 아버지의 뜻대로 하옵소서.' 지금 내 뜻과 하나님의 뜻이 부딪치는 일은 무엇입니까?"},
+  {n:10, start:"2026-11-22", title:"빈 무덤, 그리고 우리",
+   q:"마가복음은 제자들이 나가 전파하는 것으로 끝납니다. 이 공부를 마치며 내가 이어갈 한 가지는 무엇입니까?"}
+];
+// toISOString은 UTC로 바꿔 하루가 밀린다. 현지 날짜로 만든다.
+WEEKS.forEach(w=>{ const d=new Date(w.start+"T00:00:00"); d.setDate(d.getDate()+6);
+  w.end = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); });
+
+/* ===================== Firebase ===================== */
+const FB = {
+  apiKey:"AIzaSyBH-ogVqi9C63GIrllY2aIK76i5dwFBGgQ",
+  authDomain:"ladi-manager.firebaseapp.com",
+  projectId:"ladi-manager",
+  storageBucket:"ladi-manager.firebasestorage.app"
+};
+let db=null, online=false;
+try{ firebase.initializeApp(FB); db=firebase.firestore(); online=true; }catch(e){ console.warn("firestore 없음",e); }
+
+const C_SUB = "markSubmit";   // {member}_{week}
+const C_REC = "markRec";      // {member}_{yyyymmdd} (+ _c{n} 조각)
+const CHUNK = 700000;         // base64 조각 크기 (문서 1MB 한도 아래)
+
+/* ===================== 상태 ===================== */
+const LS="markStudy.me";
+let me = null, curWeek = 1, subs = {}, recs = {};
+try{ me = localStorage.getItem(LS) || null; }catch(e){}
+
+const $ = s=>document.querySelector(s);
+const pad = n=>String(n).padStart(2,"0");
+const ymd = d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const key = s=>s.replace(/\s/g,"_");
+function toast(m){ const t=document.createElement("div"); t.className="toast"; t.textContent=m;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
+function chapLabel(i){ const [a,b]=CHAPS[i]; return "마가복음 "+a+"-"+b+"장"; }
+
+function weekOf(dateStr){
+  for(const w of WEEKS){ if(dateStr>=w.start && dateStr<=w.end) return w.n; }
+  return dateStr < WEEKS[0].start ? 1 : WEEKS.length;
+}
+function dateOfWeekDay(wn, di){
+  const w = WEEKS.find(x=>x.n===wn); const d=new Date(w.start+"T00:00:00");
+  d.setDate(d.getDate()+di); return ymd(d);
+}
+const today = ymd(new Date());
+curWeek = weekOf(today);
+
+/* ===================== 이름 고르기 ===================== */
+function askWho(){
+  const m=document.createElement("div"); m.className="mask";
+  m.innerHTML='<div class="modal"><p class="eyebrow">마가복음 공부반</p>'+
+    '<h2 style="margin:0 0 4px;font-size:20px">누구신가요?</h2>'+
+    '<p class="sub">이름을 누르면 다음부터 기억합니다.</p><div class="who-grid"></div></div>';
+  const g=m.querySelector(".who-grid");
+  MEMBERS.forEach(n=>{ const b=document.createElement("button"); b.type="button"; b.textContent=n;
+    b.onclick=()=>{ me=n; try{localStorage.setItem(LS,n)}catch(e){} m.remove(); paint(); };
+    g.appendChild(b); });
+  document.body.appendChild(m);
+}
+$("#whoBtn").onclick=askWho;
+
+/* ===================== 탭 ===================== */
+function tab(which){
+  const hw = which==="hw";
+  $("#tabHw").setAttribute("aria-selected",hw); $("#tabRec").setAttribute("aria-selected",!hw);
+  $("#paneHw").hidden=!hw; $("#paneRec").hidden=hw;
+  window.scrollTo({top:0});
+}
+$("#tabHw").onclick=()=>tab("hw");
+$("#tabRec").onclick=()=>tab("rec");
+
+/* ===================== 그리기 ===================== */
+function paintWeekbar(){
+  const bar=$("#weekbar"); bar.innerHTML="";
+  WEEKS.forEach(w=>{
+    const b=document.createElement("button"); b.type="button"; b.className="wk";
+    b.setAttribute("aria-pressed", w.n===curWeek);
+    if(me && subs[key(me)+"_"+w.n]) b.classList.add("done");
+    b.innerHTML = w.n+"주";
+    b.onclick=()=>{ curWeek=w.n; paint(); };
+    bar.appendChild(b);
+  });
+}
+function paintPlan(){
+  const w=WEEKS.find(x=>x.n===curWeek);
+  $("#wkEyebrow").textContent = w.n+"주차";
+  $("#wkTitle").textContent = w.title;
+  $("#wkRange").textContent = w.start+" 주일 — "+w.end+" 토";
+  $("#qText").textContent = w.q;
+  $("#wkline").textContent = "매주 마가복음 16장 통독 · "+w.n+"/"+WEEKS.length+"주차";
+
+  const tb=$("#planBody"); tb.innerHTML=""; let done=0;
+  CHAPS.forEach((c,i)=>{
+    const d = dateOfWeekDay(curWeek,i);
+    const has = me && recs[key(me)+"_"+d.replace(/-/g,"")];
+    if(has) done++;
+    const tr=document.createElement("tr");
+    if(d===today) tr.className="today";
+    tr.innerHTML = '<td class="day">'+DAYS[i]+'<br><span style="font-size:11px;color:var(--faint)">'+d.slice(5)+'</span></td>'+
+      '<td><span class="ch">'+c[0]+'-'+c[1]+'장</span></td>'+
+      '<td class="st"><span class="pill '+(has?"yes":"no")+'">'+(has?"올림":"아직")+'</span></td>';
+    tb.appendChild(tr);
+  });
+  $("#planStat").innerHTML = '<span>내 녹음 <b>'+done+'</b> / 7일</span>'+
+    '<span>이번 주 반 전체 <b>'+Object.keys(recs).filter(k=>{
+      const dd=k.split("_").pop(); const s=dd.slice(0,4)+"-"+dd.slice(4,6)+"-"+dd.slice(6);
+      return s>=w.start && s<=w.end; }).length+'</b>건</span>';
+}
+function paintHw(){
+  if(!me) return;
+  const k = key(me)+"_"+curWeek, s = subs[k];
+  $("#sumIn").value = s ? (s.summary||"") : "";
+  $("#appIn").value = s ? (s.apply||"") : "";
+  $("#hwState").textContent = s ? ("제출함 · "+(s.updatedAt||"").slice(0,16).replace("T"," ")) : "아직 제출 전";
+}
+function paintClass(){
+  const ul=$("#classList"); ul.innerHTML="";
+  MEMBERS.forEach(n=>{
+    const s = subs[key(n)+"_"+curWeek];
+    const li=document.createElement("li");
+    li.innerHTML='<div class="rmeta"><b>'+n+'</b><span>'+
+      (s ? (s.summary||"").slice(0,42)+((s.summary||"").length>42?"…":"") : "아직 제출 전")+'</span></div>'+
+      '<span class="pill '+(s?"yes":"no")+'">'+(s?"제출":"대기")+'</span>';
+    if(s && (n===me || TEACHERS.includes(me))){
+      li.style.cursor="pointer";
+      li.onclick=()=>openSub(n,s);
+    }
+    ul.appendChild(li);
+  });
+}
+function openSub(n,s){
+  const m=document.createElement("div"); m.className="mask";
+  const esc=t=>(t||"").replace(/[<>&]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
+  m.innerHTML='<div class="modal"><p class="eyebrow">'+curWeek+'주차 · '+esc(n)+'</p>'+
+    '<h2 style="margin:0 0 10px;font-size:19px">'+esc(WEEKS.find(w=>w.n===curWeek).title)+'</h2>'+
+    '<p class="eyebrow">요약</p><p style="margin:0 0 12px;white-space:pre-wrap">'+esc(s.summary)+'</p>'+
+    '<p class="eyebrow">적용</p><p style="margin:0 0 16px;white-space:pre-wrap">'+esc(s.apply)+'</p>'+
+    '<button class="btn ghost" type="button" style="width:100%">닫기</button></div>';
+  m.querySelector("button").onclick=()=>m.remove();
+  m.onclick=e=>{ if(e.target===m) m.remove(); };
+  document.body.appendChild(m);
+}
+function paintRecPane(){
+  const w=WEEKS.find(x=>x.n===curWeek);
+  let di = DAYS.findIndex((_,i)=>dateOfWeekDay(curWeek,i)===today);
+  if(di<0) di=0;
+  $("#recEyebrow").textContent = (dateOfWeekDay(curWeek,di)===today) ? "오늘 · "+DAYS[di]+"요일" : curWeek+"주차 "+DAYS[di];
+  $("#recTitle").textContent = chapLabel(di);
+
+  const mine = Object.entries(recs).filter(([k,v])=> me && k.startsWith(key(me)+"_"))
+    .sort((a,b)=>b[0].localeCompare(a[0]));
+  drawRecs($("#myRecs"), mine, true);
+
+  const wk = Object.entries(recs).filter(([k,v])=>{
+    const dd=k.split("_").pop(); const s=dd.slice(0,4)+"-"+dd.slice(4,6)+"-"+dd.slice(6);
+    return s>=w.start && s<=w.end;
+  }).sort((a,b)=>b[0].localeCompare(a[0]));
+  drawRecs($("#allRecs"), wk, false);
+}
+function drawRecs(ul, list, mineOnly){
+  ul.innerHTML="";
+  if(!list.length){ ul.innerHTML='<li><div class="empty">'+(mineOnly?"아직 올린 녹음이 없습니다.":"이번 주 녹음이 아직 없습니다.")+'</div></li>'; return; }
+  list.forEach(([k,v])=>{
+    const dd=k.split("_").pop();
+    const ds=dd.slice(0,4)+"-"+dd.slice(4,6)+"-"+dd.slice(6);
+    const li=document.createElement("li");
+    const mm=Math.floor((v.sec||0)/60), ss=(v.sec||0)%60;
+    li.innerHTML='<div class="rmeta"><b>'+(mineOnly?ds.slice(5):v.name+" · "+ds.slice(5))+'</b>'+
+      '<span>'+(v.chap||"")+' · '+mm+'분 '+pad(ss)+'초 · '+Math.round((v.bytes||0)/1024)+'KB</span>'+
+      '<audio controls preload="none" data-k="'+k+'"></audio></div>';
+    const au=li.querySelector("audio");
+    au.addEventListener("play",()=>loadAudio(au,k,v),{once:true});
+    ul.appendChild(li);
+  });
+}
+function paint(){
+  $("#whoBtn").textContent = me ? me : "이름 고르기";
+  paintWeekbar(); paintPlan(); paintHw(); paintClass(); paintRecPane();
+}
+
+/* ===================== 저장 ===================== */
+$("#saveHw").onclick = async ()=>{
+  if(!me) return askWho();
+  const summary=$("#sumIn").value.trim(), apply=$("#appIn").value.trim();
+  if(!apply) return toast("적용 과제는 꼭 적어주세요.");
+  const k = key(me)+"_"+curWeek;
+  const doc = {member:me, week:curWeek, summary, apply, updatedAt:new Date().toISOString()};
+  subs[k]=doc; paint();
+  if(!online) return toast("저장했습니다 (이 기기에만)");
+  $("#saveHw").disabled=true;
+  try{ await db.collection(C_SUB).doc(k).set(doc); toast("과제를 제출했습니다"); }
+  catch(e){ console.error(e); toast("저장에 실패했습니다. 잠시 뒤 다시 눌러주세요."); }
+  $("#saveHw").disabled=false;
+};
+
+/* ===================== 녹음 ===================== */
+let mr=null, chunks=[], t0=0, timer=null;
+const MAXSEC = 20*60;
+
+$("#recBtn").onclick = async ()=>{
+  if(!me) return askWho();
+  if(mr && mr.state==="recording"){ mr.stop(); return; }
+  if(!navigator.mediaDevices || !window.MediaRecorder) return toast("이 브라우저는 녹음을 지원하지 않습니다. 파일 올리기를 써주세요.");
+  let stream;
+  try{ stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true}}); }
+  catch(e){ return toast("마이크 사용을 허용해주세요."); }
+
+  const type = ["audio/webm;codecs=opus","audio/webm","audio/mp4"].find(t=>MediaRecorder.isTypeSupported(t)) || "";
+  mr = new MediaRecorder(stream, type?{mimeType:type, audioBitsPerSecond:24000}:{});
+  chunks=[];
+  mr.ondataavailable = e=>{ if(e.data && e.data.size) chunks.push(e.data); };
+  mr.onstop = async ()=>{
+    stream.getTracks().forEach(t=>t.stop());
+    clearInterval(timer); $("#recLive").classList.remove("rec-on"); $("#recDot").hidden=true;
+    $("#recBtn").textContent="● 녹음 시작"; $("#recBtn").classList.add("rec");
+    const sec = Math.round((Date.now()-t0)/1000);
+    const blob = new Blob(chunks,{type: mr.mimeType || "audio/webm"});
+    $("#clock").textContent="00:00"; $("#bar").style.width="0";
+    if(sec<3) return toast("너무 짧습니다. 다시 녹음해주세요.");
+    await saveRec(blob, sec);
+  };
+  mr.start(1000); t0=Date.now();
+  $("#recLive").classList.add("rec-on"); $("#recDot").hidden=false;
+  $("#recBtn").textContent="■ 녹음 끝내기"; $("#recBtn").classList.remove("rec");
+  timer=setInterval(()=>{
+    const s=Math.round((Date.now()-t0)/1000);
+    $("#clock").textContent=pad(Math.floor(s/60))+":"+pad(s%60);
+    $("#bar").style.width=Math.min(100,s/MAXSEC*100)+"%";
+    if(s>=MAXSEC){ toast("20분이 되어 자동으로 마칩니다."); mr.stop(); }
+  },250);
+};
+
+$("#pickBtn").onclick = ()=>{ if(!me) return askWho(); $("#fileIn").click(); };
+$("#fileIn").onchange = async e=>{
+  const f=e.target.files[0]; e.target.value="";
+  if(!f) return;
+  if(f.size > 12*1024*1024) return toast("파일이 너무 큽니다(12MB 초과). 더 짧게 녹음해주세요.");
+  let sec=0;
+  try{
+    sec = await new Promise(res=>{
+      const a=new Audio(URL.createObjectURL(f));
+      a.onloadedmetadata=()=>res(Math.round(a.duration)||0);
+      a.onerror=()=>res(0); setTimeout(()=>res(0),4000);
+    });
+  }catch(_){}
+  await saveRec(f, sec);
+};
+
+async function saveRec(blob, sec){
+  const d = new Date(), dd = ymd(d).replace(/-/g,"");
+  let di = DAYS.findIndex((_,i)=>dateOfWeekDay(curWeek,i)===ymd(d));
+  if(di<0) di=0;
+  const k = key(me)+"_"+dd;
+  const meta = {member:me, name:me, date:ymd(d), week:weekOf(ymd(d)),
+                chap:chapLabel(di), sec, bytes:blob.size,
+                mime:blob.type||"audio/webm", createdAt:new Date().toISOString()};
+
+  if(!online){ recs[k]=meta; paint(); return toast("저장했습니다 (이 기기에만)"); }
+
+  toast("올리는 중…");
+  try{
+    const b64 = await blobToB64(blob);
+    const parts = Math.ceil(b64.length/CHUNK);
+    meta.chunks = parts;
+    for(let i=0;i<parts;i++){
+      await db.collection(C_REC).doc(k+"_c"+i).set({b64:b64.slice(i*CHUNK,(i+1)*CHUNK)});
+    }
+    await db.collection(C_REC).doc(k).set(meta);
+    recs[k]=meta; paint();
+    toast("녹음을 올렸습니다");
+  }catch(err){
+    console.error(err);
+    toast("올리지 못했습니다. 연결을 확인해주세요.");
+  }
+}
+function blobToB64(b){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(String(r.result).split(",")[1]);
+    r.onerror=rej; r.readAsDataURL(b);
+  });
+}
+async function loadAudio(au,k,v){
+  if(!online || !v.chunks) return;
+  au.insertAdjacentHTML("afterend",'<span class="note" id="ld_'+k+'">불러오는 중…</span>');
+  try{
+    let b64="";
+    for(let i=0;i<v.chunks;i++){
+      const s=await db.collection(C_REC).doc(k+"_c"+i).get();
+      b64 += (s.data()||{}).b64 || "";
+    }
+    const bin=atob(b64), arr=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+    au.src = URL.createObjectURL(new Blob([arr],{type:v.mime||"audio/webm"}));
+    au.play().catch(()=>{});
+  }catch(e){ console.error(e); toast("녹음을 불러오지 못했습니다."); }
+  const ld=document.getElementById("ld_"+k); if(ld) ld.remove();
+}
+
+/* ===================== 불러오기 ===================== */
+async function boot(){
+  paint();
+  if(!me) askWho();
+  if(!online) return;
+  db.collection(C_SUB).onSnapshot(s=>{
+    subs={}; s.forEach(d=>subs[d.id]=d.data()); paint();
+  }, e=>console.warn(e));
+  db.collection(C_REC).onSnapshot(s=>{
+    recs={}; s.forEach(d=>{ if(!/_c\d+$/.test(d.id)) recs[d.id]=d.data(); }); paint();
+  }, e=>console.warn(e));
+}
+boot();
+</script>
+</body>
+</html>
