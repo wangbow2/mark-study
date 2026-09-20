@@ -160,12 +160,16 @@ textarea:focus,button:focus-visible,.tab:focus-visible,.wk:focus-visible{outline
 .linkch:hover,.linkch:focus{border-bottom-color:var(--accent)}
 /* ---------- 올라온 과제 글 ---------- */
 .reclist li.post{display:block; padding:14px 0}
-.phead{display:flex; align-items:baseline; gap:8px; margin-bottom:6px}
+.phead{display:flex; align-items:center; gap:8px; margin-bottom:6px}
 .phead b{font-size:14.5px; font-weight:700}
 .phead span{font-size:11.5px; color:var(--faint); font-variant-numeric:tabular-nums}
 .ptext{margin:0 0 8px; white-space:pre-wrap; line-height:1.75; font-size:14.5px}
 .ptext:last-child{margin-bottom:0}
 .ptext.apply{padding-left:11px; border-left:2px solid var(--gold); color:var(--muted)}
+.xbtn{margin-left:auto; padding:3px 10px; cursor:pointer; font-size:11.5px; font-weight:700;
+  background:transparent; color:var(--bad); border:1px solid var(--line-2); border-radius:999px}
+.xbtn:hover{border-color:var(--bad)}
+.btn.danger{background:var(--bad); border-color:var(--bad); color:#fff}
 .chtag{display:inline-block; padding:1px 8px; margin-right:6px; border-radius:6px;
   background:var(--accent-soft); color:var(--accent-ink); border:1px solid var(--accent);
   font-family:"Gowun Batang",serif; font-size:13px; font-weight:700}
@@ -394,6 +398,17 @@ async function sha(s){
   const h = await crypto.subtle.digest("SHA-256", b);
   return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,"0")).join("");
 }
+function confirmBox(title, body, okLabel){
+  return new Promise(res=>{
+    const m = modal('<h2 style="margin:0 0 5px;font-size:19px">'+title+'</h2>'+
+      '<p class="sub">'+body+'</p>'+
+      '<div class="row"><button class="btn ghost" id="cNo" type="button">그만두기</button>'+
+      '<button class="btn danger" id="cYes" type="button">'+okLabel+'</button></div>');
+    m.querySelector("#cNo").onclick=()=>{ m.remove(); res(false); };
+    m.querySelector("#cYes").onclick=()=>{ m.remove(); res(true); };
+    m.onclick=e=>{ if(e.target===m){ m.remove(); res(false); } };
+  });
+}
 function modal(html){
   const m=document.createElement("div"); m.className="mask";
   m.innerHTML='<div class="modal">'+html+'</div>';
@@ -571,9 +586,13 @@ function paintClass(){
     const s2 = subs[key(n)+"_"+curWeek];
     const li=document.createElement("li");
     li.className="post";
-    li.innerHTML='<div class="phead"><b>'+esc(n)+'</b><span>'+(s2.updatedAt||"").slice(5,10)+'</span></div>'+
+    const mayDel = (n===me || TEACHERS.includes(me));
+    li.innerHTML='<div class="phead"><b>'+esc(n)+'</b><span>'+(s2.updatedAt||"").slice(5,10)+'</span>'+
+      (mayDel?'<button class="xbtn" type="button">지우기</button>':'')+'</div>'+
       (s2.summary?'<p class="ptext">'+esc(s2.summary)+'</p>':'')+
       (s2.apply?'<p class="ptext apply">'+esc(s2.apply)+'</p>':'');
+    const xb=li.querySelector(".xbtn");
+    if(xb) xb.onclick=()=>delSub(n);
     ul.appendChild(li);
   });
   const late = MEMBERS.filter(n=>!subs[key(n)+"_"+curWeek]);
@@ -612,9 +631,12 @@ function drawRecs(ul, list, mineOnly){
     li.innerHTML='<div class="rmeta">'+
       '<b><span class="chtag">'+chapShort(v.chap)+'</span>'+(mineOnly?"":" "+v.name)+'</b>'+
       '<span>'+ds.slice(5)+" · "+mm+'분 '+pad(ss)+'초'+parts+' · '+Math.round((v.bytes||0)/1024)+'KB</span>'+
-      '<audio controls preload="none" data-k="'+k+'"></audio></div>';
+      '<audio controls preload="none" data-k="'+k+'"></audio></div>'+
+      ((v.member===me || TEACHERS.includes(me)) ? '<button class="xbtn" type="button" title="지우기">지우기</button>' : '');
     const au=li.querySelector("audio");
     au.addEventListener("play",()=>loadAudio(au,k,v),{once:true});
+    const xb=li.querySelector(".xbtn");
+    if(xb) xb.onclick=()=>delRec(k,v);
     ul.appendChild(li);
   });
 }
@@ -836,6 +858,37 @@ function blobToB64(b){
     r.onload=()=>res(String(r.result).split(",")[1]);
     r.onerror=rej; r.readAsDataURL(b);
   });
+}
+
+/* ---- 지우기 ---- */
+async function delRec(k, v){
+  const ok = await confirmBox("이 녹음을 지울까요?",
+    chapShort(v.chap)+" · "+v.date+" · "+v.name+"님의 녹음입니다. 되돌릴 수 없습니다.", "지우기");
+  if(!ok) return;
+  if(!online){ delete recs[k]; paint(); return; }
+  toast("지우는 중…");
+  try{
+    const list = v.partList || [];
+    for(let pi=0; pi<list.length; pi++){
+      for(let ci=0; ci<list[pi].chunks; ci++){
+        await db.collection(C_REC).doc(k+"_p"+pi+"_c"+ci).delete();
+      }
+    }
+    await db.collection(C_REC).doc(k).delete();
+    delete recs[k]; paint();
+    toast("지웠습니다");
+  }catch(e){ console.error(e); toast("지우지 못했습니다. 잠시 뒤 다시 해주세요."); }
+}
+async function delSub(name){
+  const ok = await confirmBox("이 과제를 지울까요?",
+    curWeek+"주차 "+name+"님의 과제입니다. 되돌릴 수 없습니다.", "지우기");
+  if(!ok) return;
+  const k = key(name)+"_"+curWeek;
+  if(!online){ delete subs[k]; paint(); return; }
+  try{
+    await db.collection(C_SUB).doc(k).delete();
+    delete subs[k]; paint(); toast("지웠습니다");
+  }catch(e){ console.error(e); toast("지우지 못했습니다."); }
 }
 
 /* ---- 듣기: 부를 차례로 잇는다 ---- */
