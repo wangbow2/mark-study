@@ -167,6 +167,19 @@ textarea:focus,button:focus-visible,.tab:focus-visible,.wk:focus-visible{outline
 .ptext{margin:0 0 8px; white-space:pre-wrap; line-height:1.75; font-size:14.5px}
 .ptext:last-child{margin-bottom:0}
 .ptext.apply{padding-left:11px; border-left:2px solid var(--gold); color:var(--muted)}
+.tblwrap{overflow-x:auto; margin-top:10px}
+table.check{border-collapse:collapse; font-size:13px; width:100%; min-width:340px}
+.check th,.check td{padding:6px 3px; text-align:center; border-bottom:1px solid var(--line)}
+.check th{font-size:11px; color:var(--faint); font-weight:700; letter-spacing:.04em}
+.check th.nm,.check td.nm{text-align:left; white-space:nowrap; padding-right:8px; font-size:13px}
+.check td.nm{color:var(--muted)}
+.check tr.meRow td{background:var(--accent-soft)}
+.check tr.meRow td.nm{font-weight:700; color:var(--ink)}
+.check th.td-today{color:var(--gold)}
+.check .on{color:var(--accent); font-size:15px; line-height:1}
+.check .off{color:var(--line-2); font-size:15px; line-height:1}
+.check td.sum{font-variant-numeric:tabular-nums; color:var(--muted); font-size:12px}
+.check td.hw .on{color:var(--gold)}
 .xbtn{margin-left:auto; padding:3px 10px; cursor:pointer; font-size:11.5px; font-weight:700;
   background:transparent; color:var(--bad); border:1px solid var(--line-2); border-radius:999px}
 .xbtn:hover{border-color:var(--bad)}
@@ -306,6 +319,14 @@ audio{width:100%; margin-top:7px; height:34px}
     </div>
 
     <div class="card">
+      <p class="eyebrow">함께 보기</p>
+      <h2 id="checkTitle">우리 반 체크표</h2>
+      <p class="sub" id="checkSub"></p>
+      <div class="tblwrap"><table class="check" id="checkTbl"></table></div>
+      <p class="note">● 녹음을 올린 날 · 맨 오른쪽은 그 주 과제입니다.</p>
+    </div>
+
+    <div class="card">
       <p class="eyebrow">함께 듣기</p>
       <h2>우리 반 녹음</h2>
       <p class="sub">이번 주에 올라온 녹음입니다.</p>
@@ -319,7 +340,7 @@ audio{width:100%; margin-top:7px; height:34px}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
 /* ===================== 기본 데이터 ===================== */
-const APP_BUILD = "260920-5";   // 로그인 화면 아래에 보인다
+const APP_BUILD = "260920-6";   // 로그인 화면 아래에 보인다
 const MEMBERS = ["이하은","김하윤","김수현","구예림","배은채","정재현 선생님","김재원","황영환 목사"];
 const TEACHERS = ["정재현 선생님","황영환 목사"];
 
@@ -651,10 +672,41 @@ function drawRecs(ul, list, mineOnly){
     ul.appendChild(li);
   });
 }
+function paintCheck(){
+  const tbl=$("#checkTbl"); if(!tbl) return;
+  const w=WEEKS.find(x=>x.n===curWeek);
+  $("#checkSub").textContent = w.n+"주차 · "+w.start.slice(5)+" ~ "+w.end.slice(5);
+
+  let head='<thead><tr><th class="nm">이름</th>';
+  for(let i=0;i<7;i++){
+    const d=dateOfWeekDay(curWeek,i);
+    head+='<th class="'+(d===today?"td-today":"")+'">'+DAYS[i].slice(0,1)+'<br>'+
+      '<span style="font-weight:400;font-size:10px">'+d.slice(8)+'</span></th>';
+  }
+  head+='<th>계</th><th class="hw">과제</th></tr></thead>';
+
+  let body='<tbody>';
+  MEMBERS.forEach(n=>{
+    let cnt=0, row='';
+    for(let i=0;i<7;i++){
+      const d=dateOfWeekDay(curWeek,i).replace(/-/g,"");
+      const has = !!recs[key(n)+"_"+d];
+      if(has) cnt++;
+      row+='<td><span class="'+(has?"on":"off")+'">'+(has?"●":"·")+'</span></td>';
+    }
+    const hw = !!subs[key(n)+"_"+curWeek];
+    body+='<tr class="'+(n===me?"meRow":"")+'"><td class="nm">'+n+'</td>'+row+
+      '<td class="sum">'+cnt+'/7</td>'+
+      '<td class="hw"><span class="'+(hw?"on":"off")+'">'+(hw?"●":"·")+'</span></td></tr>';
+  });
+  body+='</tbody>';
+  tbl.innerHTML=head+body;
+}
+
 function paint(){
   if(!me) return;
   $("#whoBtn").textContent = me;
-  paintWeekbar(); paintPlan(); paintHw(); paintClass(); paintRecPane();
+  paintWeekbar(); paintPlan(); paintHw(); paintClass(); paintRecPane(); paintCheck();
 }
 
 /* ===================== 저장 ===================== */
