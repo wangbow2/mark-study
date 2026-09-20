@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>마가복음 공부반</title>
+<title>마가</title>
 <meta name="theme-color" content="#2F6F62">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -161,7 +161,7 @@ audio{width:100%; margin-top:7px; height:34px}
     <div class="brandrow">
       <div class="mark">馬</div>
       <div class="brand">
-        <b>마가복음 공부반</b>
+        <b>마가</b>
         <span id="wkline">매주 마가복음 16장 통독</span>
       </div>
       <button class="who" id="whoBtn" type="button">…</button>
@@ -333,7 +333,7 @@ curWeek = weekOf(today);
 /* ===================== 이름 고르기 ===================== */
 function askWho(){
   const m=document.createElement("div"); m.className="mask";
-  m.innerHTML='<div class="modal"><p class="eyebrow">마가복음 공부반</p>'+
+  m.innerHTML='<div class="modal"><p class="eyebrow">마가</p>'+
     '<h2 style="margin:0 0 4px;font-size:20px">누구신가요?</h2>'+
     '<p class="sub">이름을 누르면 다음부터 기억합니다.</p><div class="who-grid"></div></div>';
   const g=m.querySelector(".who-grid");
