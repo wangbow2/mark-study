@@ -416,6 +416,7 @@ function clearPins(ins){ ins.forEach(x=>x.value=""); ins[0].focus(); }
 
 function showLogin(on){
   const lp=$("#loginPage");
+  if(!lp) return;
   lp.hidden = !on;
   lp.style.display = on ? "flex" : "none";
   document.querySelector("header.top").style.display = on ? "none" : "";
@@ -618,7 +619,8 @@ function drawRecs(ul, list, mineOnly){
   });
 }
 function paint(){
-  $("#whoBtn").textContent = me ? me : "이름 고르기";
+  if(!me) return;
+  $("#whoBtn").textContent = me;
   paintWeekbar(); paintPlan(); paintHw(); paintClass(); paintRecPane();
 }
 
@@ -864,12 +866,15 @@ async function loadAudio(au,k,v){
 
 /* ===================== 불러오기 ===================== */
 async function boot(){
-  paint();
+  showLogin(true);
   if(online){
     try{ const a=await db.collection("markStudy").doc("auth").get();
          PINS = (a.data()||{}).pins || {}; }catch(e){ console.warn(e); }
   }
-  if(!me) askWho(); else { paint(); checkDraft(); }
+  // 로그인 화면을 먼저 띄운다. 기억된 이름이 있으면 비밀번호부터 묻는다.
+  const remembered = me; me = null;
+  if(remembered && MEMBERS.includes(remembered) && PINS[remembered]) askPin(remembered);
+  else askWho();
   if(!online) return;
   db.collection(C_SUB).onSnapshot(s=>{
     subs={}; s.forEach(d=>subs[d.id]=d.data()); paint();
