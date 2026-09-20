@@ -216,8 +216,8 @@ audio{width:100%; margin-top:7px; height:34px}
       <button class="who" id="whoBtn" type="button">…</button>
     </div>
     <div class="tabs" role="tablist">
-      <button class="tab" id="tabHw" role="tab" aria-selected="true" type="button">이번주 과제</button>
-      <button class="tab" id="tabRec" role="tab" aria-selected="false" type="button">녹음</button>
+      <button class="tab" id="tabRec" role="tab" aria-selected="true" type="button">녹음</button>
+      <button class="tab" id="tabHw" role="tab" aria-selected="false" type="button">이번주 과제</button>
     </div>
   </div>
 </header>
@@ -225,7 +225,7 @@ audio{width:100%; margin-top:7px; height:34px}
 <main class="wrap">
 
   <!-- ===== 이번주 과제 ===== -->
-  <section id="paneHw">
+  <section id="paneHw" hidden>
     <div class="weekbar" id="weekbar"></div>
 
     <div class="card">
@@ -266,7 +266,7 @@ audio{width:100%; margin-top:7px; height:34px}
   </section>
 
   <!-- ===== 녹음 ===== -->
-  <section id="paneRec" hidden>
+  <section id="paneRec">
     <div class="card">
       <p class="eyebrow" id="recEyebrow">오늘</p>
       <h2 id="recTitle">마가복음 1-2장</h2>
@@ -319,7 +319,7 @@ audio{width:100%; margin-top:7px; height:34px}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
 /* ===================== 기본 데이터 ===================== */
-const APP_BUILD = "260920-3";   // 로그인 화면 아래에 보인다
+const APP_BUILD = "260920-4";   // 로그인 화면 아래에 보인다
 const MEMBERS = ["이하은","김하윤","김수현","구예림","배은채","정재현 선생님","김재원","황영환 목사"];
 const TEACHERS = ["정재현 선생님","황영환 목사"];
 
