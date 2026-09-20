@@ -133,6 +133,18 @@ textarea:focus,button:focus-visible,.tab:focus-visible,.wk:focus-visible{outline
 .clock{font-variant-numeric:tabular-nums; font-size:23px; font-weight:700; letter-spacing:.02em}
 .bar{height:5px; background:var(--line); border-radius:99px; overflow:hidden; margin-top:9px}
 .bar i{display:block; height:100%; background:var(--accent); width:0}
+.resume{margin-top:14px; padding:13px; background:var(--gold-soft); border:1px solid var(--gold); border-radius:var(--r)}
+.resume b{display:block; font-size:13.5px; color:var(--ink)}
+.resume span{font-size:12.5px; color:var(--muted)}
+.pinrow{display:flex; gap:7px; justify-content:center; margin:14px 0 4px}
+.pinrow input{
+  width:46px; height:56px; text-align:center; font-size:22px; font-weight:700;
+  background:var(--sunken); border:1px solid var(--line-2); border-radius:9px;
+  font-variant-numeric:tabular-nums;
+}
+.pinrow input:focus{outline:2px solid var(--accent); outline-offset:1px}
+.linkch{color:var(--accent); text-decoration:none; border-bottom:1px solid transparent}
+.linkch:hover,.linkch:focus{border-bottom-color:var(--accent)}
 .reclist{list-style:none; margin:0; padding:0}
 .reclist li{display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--line); flex-wrap:wrap}
 .reclist li:last-child{border-bottom:0}
@@ -233,10 +245,21 @@ audio{width:100%; margin-top:7px; height:34px}
 
       <div class="row">
         <button class="btn rec" id="recBtn" type="button">● 녹음 시작</button>
+        <button class="btn ghost" id="pauseBtn" type="button" hidden>❚❚ 잠시 멈춤</button>
         <button class="btn ghost" id="pickBtn" type="button">파일 올리기</button>
         <input type="file" id="fileIn" accept="audio/*,video/webm,.m4a,.mp3,.wav,.aac,.ogg" hidden>
       </div>
-      <p class="note" id="recNote">최대 20분까지 녹음됩니다. 올리는 파일은 8MB 이하를 권합니다.</p>
+      <p class="note" id="recNote">녹음하는 동안 이 기기에 계속 저장됩니다. 중간에 꺼져도 이어서 할 수 있습니다.</p>
+
+      <div class="resume" id="resumeBox" hidden>
+        <b>중단된 녹음이 있습니다</b>
+        <span id="resumeInfo"></span>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="resumeGo" type="button">이어서 녹음</button>
+          <button class="btn ghost" id="resumeUp" type="button">여기까지 올리기</button>
+          <button class="btn ghost" id="resumeDel" type="button">버리기</button>
+        </div>
+      </div>
     </div>
 
     <div class="card">
@@ -331,18 +354,110 @@ const today = ymd(new Date());
 curWeek = weekOf(today);
 
 /* ===================== 이름 고르기 ===================== */
-function askWho(){
+let PINS = {};   // {이름: sha256hex}  — markStudy/auth 문서
+
+async function sha(s){
+  const b = new TextEncoder().encode("마가:"+s);
+  const h = await crypto.subtle.digest("SHA-256", b);
+  return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,"0")).join("");
+}
+function modal(html){
   const m=document.createElement("div"); m.className="mask";
-  m.innerHTML='<div class="modal"><p class="eyebrow">마가</p>'+
+  m.innerHTML='<div class="modal">'+html+'</div>';
+  document.body.appendChild(m); return m;
+}
+function pinInputs(box, onDone){
+  box.innerHTML='<div class="pinrow">'+[0,1,2,3].map(i=>
+    '<input type="tel" inputmode="numeric" maxlength="1" id="pin'+i+'" autocomplete="off">').join("")+'</div>';
+  const ins=[...box.querySelectorAll("input")];
+  ins.forEach((el,i)=>{
+    el.oninput=()=>{ el.value=el.value.replace(/\D/g,"").slice(0,1);
+      if(el.value && ins[i+1]) ins[i+1].focus();
+      const v=ins.map(x=>x.value).join(""); if(v.length===4) onDone(v, ins); };
+    el.onkeydown=e=>{ if(e.key==="Backspace" && !el.value && ins[i-1]) ins[i-1].focus(); };
+  });
+  setTimeout(()=>ins[0].focus(),60);
+  return ins;
+}
+function clearPins(ins){ ins.forEach(x=>x.value=""); ins[0].focus(); }
+
+function askWho(){
+  const m = modal('<p class="eyebrow">마가</p>'+
     '<h2 style="margin:0 0 4px;font-size:20px">누구신가요?</h2>'+
-    '<p class="sub">이름을 누르면 다음부터 기억합니다.</p><div class="who-grid"></div></div>';
+    '<p class="sub">이름을 누르고 비밀번호 네 자리를 넣습니다.</p><div class="who-grid"></div>');
   const g=m.querySelector(".who-grid");
   MEMBERS.forEach(n=>{ const b=document.createElement("button"); b.type="button"; b.textContent=n;
-    b.onclick=()=>{ me=n; try{localStorage.setItem(LS,n)}catch(e){} m.remove(); paint(); };
-    g.appendChild(b); });
-  document.body.appendChild(m);
+    b.onclick=()=>{ m.remove(); askPin(n); }; g.appendChild(b); });
 }
-$("#whoBtn").onclick=askWho;
+
+function askPin(name){
+  const first = !PINS[name];
+  const m = modal('<p class="eyebrow">'+name+'</p>'+
+    '<h2 style="margin:0 0 4px;font-size:20px">'+(first?"비밀번호를 정해주세요":"비밀번호")+'</h2>'+
+    '<p class="sub">'+(first?"네 자리 숫자입니다. 다음부터 이 번호로 들어옵니다.":"네 자리 숫자를 넣어주세요.")+'</p>'+
+    '<div id="pinbox"></div><p class="note" id="pinMsg"></p>'+
+    '<div class="row"><button class="btn ghost" id="pinBack" type="button">다른 사람</button></div>');
+  const box=m.querySelector("#pinbox"), msg=m.querySelector("#pinMsg");
+  let stage1=null;
+
+  const ins = pinInputs(box, async (v)=>{
+    if(first && stage1===null){
+      stage1=v; msg.textContent="확인을 위해 한 번 더 넣어주세요."; clearPins(ins); return;
+    }
+    if(first){
+      if(v!==stage1){ stage1=null; msg.textContent="두 번이 다릅니다. 처음부터 다시 넣어주세요."; clearPins(ins); return; }
+      const h=await sha(v); PINS[name]=h;
+      if(online){ try{ await db.collection("markStudy").doc("auth").set({pins:PINS},{merge:true}); }
+                  catch(e){ console.error(e); } }
+      signIn(name, m); return;
+    }
+    const h=await sha(v);
+    if(h===PINS[name]) signIn(name, m);
+    else { msg.textContent="비밀번호가 다릅니다."; clearPins(ins); }
+  });
+  m.querySelector("#pinBack").onclick=()=>{ m.remove(); askWho(); };
+}
+
+function signIn(name, m){
+  me=name; try{ localStorage.setItem(LS,name); }catch(e){}
+  if(m) m.remove();
+  paint(); checkDraft();
+  toast(name+"님, 환영합니다");
+}
+function signOut(){
+  me=null; try{ localStorage.removeItem(LS); }catch(e){}
+  paint(); askWho();
+}
+$("#whoBtn").onclick=()=>{
+  if(!me) return askWho();
+  const m = modal('<p class="eyebrow">'+me+'</p><h2 style="margin:0 0 10px;font-size:19px">무엇을 할까요?</h2>'+
+    '<div class="row" style="margin:0"><button class="btn ghost" id="mOut" type="button">나가기</button>'+
+    '<button class="btn ghost" id="mPin" type="button">비밀번호 바꾸기</button>'+
+    (TEACHERS.includes(me)?'<button class="btn ghost" id="mReset" type="button">비밀번호 초기화</button>':'')+
+    '<button class="btn" id="mClose" type="button">닫기</button></div>');
+  m.querySelector("#mClose").onclick=()=>m.remove();
+  m.querySelector("#mOut").onclick=()=>{ m.remove(); signOut(); };
+  m.querySelector("#mPin").onclick=()=>{ m.remove(); delete PINS[me]; askPin(me); };
+  const r=m.querySelector("#mReset");
+  if(r) r.onclick=()=>{ m.remove(); resetPin(); };
+};
+function resetPin(){
+  const m = modal('<p class="eyebrow">선생님·목사님</p><h2 style="margin:0 0 4px;font-size:19px">비밀번호 초기화</h2>'+
+    '<p class="sub">잊어버린 사람의 이름을 누르면 비밀번호가 지워집니다. 다음 접속 때 새로 정하게 됩니다.</p>'+
+    '<div class="who-grid"></div><div class="row"><button class="btn ghost" id="rClose" type="button">닫기</button></div>');
+  const g=m.querySelector(".who-grid");
+  MEMBERS.filter(n=>n!==me).forEach(n=>{
+    const b=document.createElement("button"); b.type="button";
+    b.textContent=n+(PINS[n]?"":" ·");
+    b.onclick=async ()=>{
+      delete PINS[n];
+      if(online){ try{ await db.collection("markStudy").doc("auth").set({pins:PINS}); }catch(e){ console.error(e); } }
+      m.remove(); toast(n+"님 비밀번호를 지웠습니다");
+    };
+    g.appendChild(b);
+  });
+  m.querySelector("#rClose").onclick=()=>m.remove();
+}
 
 /* ===================== 탭 ===================== */
 function tab(which){
@@ -479,41 +594,140 @@ $("#saveHw").onclick = async ()=>{
 };
 
 /* ===================== 녹음 ===================== */
-let mr=null, chunks=[], t0=0, timer=null;
+/* 녹음은 '부(part)' 단위로 쌓인다. 중간에 꺼져도 여기까지가 기기에 남고,
+   다시 들어오면 이어서 다음 부를 녹음해 같은 날짜에 붙인다. */
+let mr=null, stream=null, t0=0, timer=null, paused=0, pauseAt=0;
+let draft=null;                      // {date, mime, parts:[Blob], secs:[n]}
 const MAXSEC = 20*60;
 
-$("#recBtn").onclick = async ()=>{
+/* ---- 기기 저장(IndexedDB) ---- */
+function idb(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open("markStudy",1);
+    r.onupgradeneeded=()=>r.result.createObjectStore("draft");
+    r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
+  });
+}
+async function draftSave(snap){
+  const body = snap || draft;
+  if(!body || !me) return;
+  try{ const d=await idb();
+    await new Promise((res,rej)=>{ const t=d.transaction("draft","readwrite");
+      t.objectStore("draft").put(body, me); t.oncomplete=res; t.onerror=()=>rej(t.error); });
+  }catch(e){ console.warn("기기 저장 실패",e); }
+}
+async function draftLoad(){
+  if(!me) return null;
+  try{ const d=await idb();
+    return await new Promise((res,rej)=>{ const t=d.transaction("draft","readonly");
+      const q=t.objectStore("draft").get(me); q.onsuccess=()=>res(q.result||null); q.onerror=()=>rej(q.error); });
+  }catch(e){ return null; }
+}
+async function draftClear(){
+  draft=null;
+  if(!me) return;
+  try{ const d=await idb();
+    await new Promise(res=>{ const t=d.transaction("draft","readwrite");
+      t.objectStore("draft").delete(me); t.oncomplete=res; t.onerror=res; });
+  }catch(e){}
+}
+
+/* ---- 중단된 녹음 알리기 ---- */
+async function checkDraft(){
+  const box=$("#resumeBox"); if(!box) return;
+  draft = await draftLoad();
+  if(!draft || !draft.parts || !draft.parts.length){ box.hidden=true; return; }
+  const sec=(draft.secs||[]).reduce((a,b)=>a+b,0);
+  const bytes=draft.parts.reduce((a,b)=>a+b.size,0);
+  $("#resumeInfo").textContent = draft.date+" · "+draft.parts.length+"부 · "+
+    Math.floor(sec/60)+"분 "+pad(sec%60)+"초 · "+Math.round(bytes/1024)+"KB";
+  box.hidden=false;
+}
+$("#resumeGo").onclick = ()=>{ $("#resumeBox").hidden=true; startRec(true); };
+$("#resumeUp").onclick = async ()=>{
+  if(!draft) return;
+  $("#resumeBox").hidden=true;
+  await uploadDraft();
+};
+$("#resumeDel").onclick = async ()=>{
+  await draftClear(); $("#resumeBox").hidden=true; toast("중단된 녹음을 버렸습니다");
+};
+
+/* ---- 녹음 ---- */
+function recUI(on){
+  $("#recLive").classList.toggle("rec-on", !!on);
+  $("#recDot").hidden = !on;
+  $("#recBtn").textContent = on ? "■ 녹음 끝내기" : "● 녹음 시작";
+  $("#recBtn").classList.toggle("rec", !on);
+  $("#pauseBtn").hidden = !on;
+  $("#pauseBtn").textContent = "❚❚ 잠시 멈춤";
+}
+function elapsed(){ return Math.round((Date.now()-t0-paused)/1000); }
+
+async function startRec(isResume){
   if(!me) return askWho();
-  if(mr && mr.state==="recording"){ mr.stop(); return; }
-  if(!navigator.mediaDevices || !window.MediaRecorder) return toast("이 브라우저는 녹음을 지원하지 않습니다. 파일 올리기를 써주세요.");
-  let stream;
+  if(!navigator.mediaDevices || !window.MediaRecorder)
+    return toast("이 브라우저는 녹음을 지원하지 않습니다. 파일 올리기를 써주세요.");
   try{ stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true}}); }
   catch(e){ return toast("마이크 사용을 허용해주세요."); }
 
+  const today2 = ymd(new Date());
   const type = ["audio/webm;codecs=opus","audio/webm","audio/mp4"].find(t=>MediaRecorder.isTypeSupported(t)) || "";
+  if(!isResume || !draft || draft.date!==today2)
+    draft = {date:today2, mime:type||"audio/webm", parts:[], secs:[]};
+
   mr = new MediaRecorder(stream, type?{mimeType:type, audioBitsPerSecond:24000}:{});
-  chunks=[];
-  mr.ondataavailable = e=>{ if(e.data && e.data.size) chunks.push(e.data); };
-  mr.onstop = async ()=>{
-    stream.getTracks().forEach(t=>t.stop());
-    clearInterval(timer); $("#recLive").classList.remove("rec-on"); $("#recDot").hidden=true;
-    $("#recBtn").textContent="● 녹음 시작"; $("#recBtn").classList.add("rec");
-    const sec = Math.round((Date.now()-t0)/1000);
-    const blob = new Blob(chunks,{type: mr.mimeType || "audio/webm"});
-    $("#clock").textContent="00:00"; $("#bar").style.width="0";
-    if(sec<3) return toast("너무 짧습니다. 다시 녹음해주세요.");
-    await saveRec(blob, sec);
+  let bits=[], lastSave=0;
+  mr.ondataavailable = async e=>{
+    if(!e.data || !e.data.size) return;
+    bits.push(e.data);
+    // 3초마다 지금까지를 기기에 남긴다 — 여기서 꺼져도 이만큼은 남는다
+    if(Date.now()-lastSave > 3000){
+      lastSave=Date.now();
+      // 진행 중인 부까지 포함한 사본을 남긴다. draft 자체는 건드리지 않는다.
+      await draftSave({date:draft.date, mime:draft.mime,
+        parts:[...draft.parts, new Blob(bits,{type:draft.mime})],
+        secs:[...draft.secs, elapsed()]});
+    }
   };
-  mr.start(1000); t0=Date.now();
-  $("#recLive").classList.add("rec-on"); $("#recDot").hidden=false;
-  $("#recBtn").textContent="■ 녹음 끝내기"; $("#recBtn").classList.remove("rec");
+  mr.onstop = async ()=>{
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+    clearInterval(timer); recUI(false);
+    const sec = elapsed();
+    $("#clock").textContent="00:00"; $("#bar").style.width="0";
+    if(bits.length && sec>=3){
+      draft.parts.push(new Blob(bits,{type:draft.mime}));
+      draft.secs.push(sec);
+      await draftSave();
+      await uploadDraft();
+    }else{
+      toast("너무 짧습니다. 다시 녹음해주세요.");
+    }
+  };
+  paused=0; pauseAt=0; t0=Date.now();
+  mr.start(1000);
+  recUI(true);
   timer=setInterval(()=>{
-    const s=Math.round((Date.now()-t0)/1000);
+    if(mr && mr.state==="paused") return;
+    const s=elapsed();
     $("#clock").textContent=pad(Math.floor(s/60))+":"+pad(s%60);
     $("#bar").style.width=Math.min(100,s/MAXSEC*100)+"%";
     if(s>=MAXSEC){ toast("20분이 되어 자동으로 마칩니다."); mr.stop(); }
   },250);
+}
+
+$("#recBtn").onclick = ()=>{
+  if(mr && (mr.state==="recording"||mr.state==="paused")){ mr.stop(); return; }
+  startRec(false);
 };
+$("#pauseBtn").onclick = ()=>{
+  if(!mr) return;
+  if(mr.state==="recording"){ mr.pause(); pauseAt=Date.now(); $("#pauseBtn").textContent="▶ 이어서"; }
+  else if(mr.state==="paused"){ paused += Date.now()-pauseAt; mr.resume(); $("#pauseBtn").textContent="❚❚ 잠시 멈춤"; }
+};
+// 탭을 닫거나 화면이 꺼질 때 지금까지를 남긴다
+document.addEventListener("visibilitychange", ()=>{ if(document.hidden && mr && mr.state==="recording") mr.requestData(); });
+window.addEventListener("pagehide", ()=>{ if(mr && mr.state==="recording") mr.requestData(); });
 
 $("#pickBtn").onclick = ()=>{ if(!me) return askWho(); $("#fileIn").click(); };
 $("#fileIn").onchange = async e=>{
@@ -528,34 +742,46 @@ $("#fileIn").onchange = async e=>{
       a.onerror=()=>res(0); setTimeout(()=>res(0),4000);
     });
   }catch(_){}
-  await saveRec(f, sec);
+  draft = {date:ymd(new Date()), mime:f.type||"audio/webm", parts:[f], secs:[sec]};
+  await uploadDraft();
 };
 
-async function saveRec(blob, sec){
-  const d = new Date(), dd = ymd(d).replace(/-/g,"");
-  let di = DAYS.findIndex((_,i)=>dateOfWeekDay(curWeek,i)===ymd(d));
-  if(di<0) di=0;
+/* ---- 올리기 ---- */
+async function uploadDraft(){
+  if(!draft || !draft.parts.length) return;
+  const d = draft.date, dd = d.replace(/-/g,"");
+  const wn = weekOf(d);
+  let di = DAYS.findIndex((_,i)=>dateOfWeekDay(wn,i)===d); if(di<0) di=0;
   const k = key(me)+"_"+dd;
-  const meta = {member:me, name:me, date:ymd(d), week:weekOf(ymd(d)),
-                chap:chapLabel(di), sec, bytes:blob.size,
-                mime:blob.type||"audio/webm", createdAt:new Date().toISOString()};
+  const sec = draft.secs.reduce((a,b)=>a+b,0);
+  const bytes = draft.parts.reduce((a,b)=>a+b.size,0);
+  const meta = {member:me, name:me, date:d, week:wn, chap:chapLabel(di),
+                sec, bytes, mime:draft.mime, parts:draft.parts.length,
+                createdAt:new Date().toISOString()};
 
-  if(!online){ recs[k]=meta; paint(); return toast("저장했습니다 (이 기기에만)"); }
+  if(!online){ recs[k]=meta; paint(); await draftClear(); return toast("저장했습니다 (이 기기에만)"); }
 
   toast("올리는 중…");
   try{
-    const b64 = await blobToB64(blob);
-    const parts = Math.ceil(b64.length/CHUNK);
-    meta.chunks = parts;
-    for(let i=0;i<parts;i++){
-      await db.collection(C_REC).doc(k+"_c"+i).set({b64:b64.slice(i*CHUNK,(i+1)*CHUNK)});
+    const partMeta=[];
+    for(let pi=0; pi<draft.parts.length; pi++){
+      const b64 = await blobToB64(draft.parts[pi]);
+      const n = Math.ceil(b64.length/CHUNK);
+      for(let ci=0; ci<n; ci++){
+        await db.collection(C_REC).doc(k+"_p"+pi+"_c"+ci).set({b64:b64.slice(ci*CHUNK,(ci+1)*CHUNK)});
+      }
+      partMeta.push({chunks:n, sec:draft.secs[pi]||0, bytes:draft.parts[pi].size});
     }
+    meta.partList = partMeta;
     await db.collection(C_REC).doc(k).set(meta);
     recs[k]=meta; paint();
-    toast("녹음을 올렸습니다");
+    await draftClear();
+    $("#resumeBox").hidden=true;
+    toast("녹음을 올렸습니다 ("+partMeta.length+"부)");
   }catch(err){
     console.error(err);
-    toast("올리지 못했습니다. 연결을 확인해주세요.");
+    toast("올리지 못했습니다. 기기에 남아 있으니 다시 눌러주세요.");
+    checkDraft();
   }
 }
 function blobToB64(b){
@@ -565,27 +791,41 @@ function blobToB64(b){
     r.onerror=rej; r.readAsDataURL(b);
   });
 }
+
+/* ---- 듣기: 부를 차례로 잇는다 ---- */
+async function partBlob(k, pi, n, mime){
+  let b64="";
+  for(let ci=0; ci<n; ci++){
+    const s=await db.collection(C_REC).doc(k+"_p"+pi+"_c"+ci).get();
+    b64 += (s.data()||{}).b64 || "";
+  }
+  const bin=atob(b64), arr=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:mime||"audio/webm"});
+}
 async function loadAudio(au,k,v){
-  if(!online || !v.chunks) return;
-  au.insertAdjacentHTML("afterend",'<span class="note" id="ld_'+k+'">불러오는 중…</span>');
-  try{
-    let b64="";
-    for(let i=0;i<v.chunks;i++){
-      const s=await db.collection(C_REC).doc(k+"_c"+i).get();
-      b64 += (s.data()||{}).b64 || "";
-    }
-    const bin=atob(b64), arr=new Uint8Array(bin.length);
-    for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
-    au.src = URL.createObjectURL(new Blob([arr],{type:v.mime||"audio/webm"}));
-    au.play().catch(()=>{});
-  }catch(e){ console.error(e); toast("녹음을 불러오지 못했습니다."); }
-  const ld=document.getElementById("ld_"+k); if(ld) ld.remove();
+  if(!online) return;
+  const list = v.partList || [];
+  if(!list.length) return;
+  let pi=0;
+  const playPart = async ()=>{
+    try{
+      au.src = URL.createObjectURL(await partBlob(k, pi, list[pi].chunks, v.mime));
+      await au.play().catch(()=>{});
+    }catch(e){ console.error(e); toast("녹음을 불러오지 못했습니다."); }
+  };
+  au.onended = async ()=>{ if(pi+1 < list.length){ pi++; await playPart(); } };
+  await playPart();
 }
 
 /* ===================== 불러오기 ===================== */
 async function boot(){
   paint();
-  if(!me) askWho();
+  if(online){
+    try{ const a=await db.collection("markStudy").doc("auth").get();
+         PINS = (a.data()||{}).pins || {}; }catch(e){ console.warn(e); }
+  }
+  if(!me) askWho(); else { paint(); checkDraft(); }
   if(!online) return;
   db.collection(C_SUB).onSnapshot(s=>{
     subs={}; s.forEach(d=>subs[d.id]=d.data()); paint();
