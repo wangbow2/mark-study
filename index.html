@@ -319,7 +319,7 @@ audio{width:100%; margin-top:7px; height:34px}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
 /* ===================== 기본 데이터 ===================== */
-const APP_BUILD = "260920-4";   // 로그인 화면 아래에 보인다
+const APP_BUILD = "260920-5";   // 로그인 화면 아래에 보인다
 const MEMBERS = ["이하은","김하윤","김수현","구예림","배은채","정재현 선생님","김재원","황영환 목사"];
 const TEACHERS = ["정재현 선생님","황영환 목사"];
 
@@ -473,8 +473,14 @@ function askPin(name){
     if(first){
       if(v!==stage1){ stage1=null; msg.textContent="두 번이 다릅니다. 처음부터 다시 넣어주세요."; clearPins(ins); return; }
       const h=await sha(v); PINS[name]=h;
-      if(online){ try{ await db.collection("markStudy").doc("auth").set({pins:PINS},{merge:true}); }
-                  catch(e){ console.error(e); } }
+      if(online){
+        try{ await db.collection("markStudy").doc("auth").set({pins:PINS},{merge:true}); }
+        catch(e){
+          console.error(e);
+          msg.textContent = "비밀번호를 서버에 저장하지 못했습니다. 다음에 또 물을 수 있습니다.";
+          await new Promise(r=>setTimeout(r,1800));
+        }
+      }
       signIn(name); return;
     }
     const h=await sha(v);
@@ -517,7 +523,10 @@ function resetPin(){
     b.textContent=n+(PINS[n]?"":" ·");
     b.onclick=async ()=>{
       delete PINS[n];
-      if(online){ try{ await db.collection("markStudy").doc("auth").set({pins:PINS}); }catch(e){ console.error(e); } }
+      if(online){
+        try{ await db.collection("markStudy").doc("auth").set({pins:PINS}); }
+        catch(e){ console.error(e); m.remove(); return toast("지우지 못했습니다. 잠시 뒤 다시 해주세요."); }
+      }
       m.remove(); toast(n+"님 비밀번호를 지웠습니다");
     };
     g.appendChild(b);
